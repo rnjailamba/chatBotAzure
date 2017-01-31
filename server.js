@@ -240,8 +240,8 @@ bot.dialog('/cards', [
                 new builder.HeroCard(session)
                     .subtitle("Are you ok with this goal?")
                     .buttons([
-                        builder.CardAction.openUrl(session, 'https://docs.botframework.com/en-us/', 'Yes'),
-                        builder.CardAction.openUrl(session, 'https://docs.botframework.com/en-us/', 'No')
+                        builder.CardAction.dialogAction(session, "/weather", "Seattle, WA", "Yes"),
+                        builder.CardAction.dialogAction(session, "/weather", "Seattle, WA", "No")
                     ])                    
             ]);
         session.endDialog(msg);
@@ -263,6 +263,12 @@ intents.matches('Continue', [
     }
 ]);
 
+// Create a dialog and bind it to a global action
+bot.dialog('/weather', [
+    function (session, args) {
+        session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
+    }
+]);
 
 intents.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. Try saying 'hello' to me."));
 
