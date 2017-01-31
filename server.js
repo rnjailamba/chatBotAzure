@@ -20,9 +20,13 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 }); 
 
 // Create chat bot
+// var connector = new builder.ChatConnector({
+//     appId: process.env.MICROSOFT_APP_ID,
+//     appPassword: process.env.MICROSOFT_APP_PASSWORD
+// });
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD
+    appId: '66abcc6a-33e6-495c-819d-bd574b3604c5',
+    appPassword: 'fxJn2cjcNunesZmqDZxMhVT'
 });
 // var connector = new builder.ConsoleConnector().listen();
 var bot = new builder.UniversalBot(connector);
