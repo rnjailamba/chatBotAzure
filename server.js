@@ -6,6 +6,8 @@
 
 var builder = require('botbuilder');
 var restify = require('restify');
+var requestt = require('request');
+
 
 //MICROSOFT_APP_ID='66abcc6a-33e6-495c-819d-bd574b3604c5' MICROSOFT_APP_PASSWORD='fxJn2cjcNunesZmqDZxMhVT' node server.js
 
@@ -141,7 +143,7 @@ bot.dialog('/clearData', [
 bot.dialog('/enterBMI', [
     function (session, args,next) {
         if(!session.userData.weight){
-            builder.Prompts.text(session, 'Hi! What is your wt?');
+            builder.Prompts.text(session, 'What is your weight in kgs?');
         }
         else{
             next();
@@ -154,7 +156,7 @@ bot.dialog('/enterBMI', [
                 next();
             }
             else{
-                builder.Prompts.text(session, 'What is your ht?');            
+                builder.Prompts.text(session, 'What is your hieght in cm?');            
             }
         }
         else{
@@ -164,8 +166,8 @@ bot.dialog('/enterBMI', [
             }
             else{
                 session.userData.weight = results.response;
-                session.send('Ok... your weight is %s', session.userData.weight);
-                builder.Prompts.text(session, 'What is your ht?');            
+                session.send('Ok... your weight is %s kgs', session.userData.weight);
+                builder.Prompts.text(session, 'What is your hieght in cm?');            
             }
         }
     },
@@ -179,28 +181,90 @@ bot.dialog('/enterBMI', [
                 session.replaceDialog('/enterBMI');
             }
             else{
-                session.userData.height = results.response;
+                session.userData.height = results.response * 0.0328084;
                 if(session.userData.height > 6){
                     session.send('Oh my youre a tall one');                    
                 }
-                session.send('Ok... your height is %s', session.userData.height);
+                session.send('Ok... your height is %s feet', session.userData.height);
                 next();
             }
         }  
     },
     function (session, results,next) {
-        session.send('Ok... your height is %s and wt is %s and bmi = %s', session.userData.height,session.userData.weight,
+        var bmi = session.userData.weight/session.userData.height;
+        session.send('Ok... your height is %s and wt is %s and bmi = %s.', session.userData.height,session.userData.weight,
             session.userData.weight/session.userData.height);
+        session.send('I can further tell you if this is good/bad for you...'); 
+        session.userData.context = 'BMIResults';
         session.endDialog();
-    }    
+    }              
+        
 ]).cancelAction('cancel', "Ok cancelling taking your data.", {
     matches: /^(cancel|nevermind|exit|no)/i
 });
 
+intents.matches('InFeedback', [
+    function (session, args, next) {
+        if(session.userData.context == 'BMIResults'){
+            var bmi = session.userData.weight/session.userData.height;        
+            if(bmi < 5){//lower than optimal
+                session.send("It's lower than what it should be. %s, you need to put on some weight.",session.userData.name); 
+                session.userData.context = 'BMIResults_l';                           
+            }
+            else if(bmi >=5 && bmi < 10){//perfect
+                session.send("It's perfect 🙌. You know, I really admire people who keep in shape! 🚴"); 
+                session.userData.context = 'BMIResults_p';                                                              
+            }
+            else{//higher than optimal
+                session.send("It is on the higher side. But losing weight is easier than you think.");  
+                session.userData.context = 'BMIResults_h';                                                                                                
+            }
+            session.endDialog(); 
+        }
+        else if(session.userData.context == 'BMIResults_l' || session.userData.context == 'BMIResults_h'){
+            session.send("It's simple- set a long term goal, and break it down into short, achievable targets! \
+            I recommend a weight of 65kg in 3 months for you. This means your daily calorie intake should be 1200, while calories burned should be 300");
+        }
+        else{
+            session.send("Dont have feedback, sorry!.");                    
+            session.endDialog();             
+        }
+    }
+]);
+
+bot.dialog('/cards', [
+    function (session) {
+        var msg = new builder.Message(session)
+            .textFormat(builder.TextFormat.xml)
+            .attachments([
+                new builder.HeroCard(session)
+                    .subtitle("Are you ok with this goal?")
+                    .buttons([
+                        builder.CardAction.openUrl(session, 'https://docs.botframework.com/en-us/', 'Yes'),
+                        builder.CardAction.openUrl(session, 'https://docs.botframework.com/en-us/', 'No')
+                    ])                    
+            ]);
+        session.endDialog(msg);
+    }
+]);
+
+intents.matches('Continue', [
+    function (session, args, next) {
+        if(session.userData.context == 'BMIResults_p'){
+            session.send("Let's keep you healthy. To maintain your current weight, your daily calorie goals should be 500 calories.!");    
+            session.beginDialog('/cards');
+            session.endDialog(); 
+        }                
+        else{
+            session.send("Dont have feedback, sorry!.");                    
+            session.endDialog();             
+        }
+ 
+    }
+]);
 
 
-
-intents.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. Try saying hello to me."));
+intents.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. Try saying 'hello' to me."));
 
 // var restify = require('restify');
 // var builder = require('botbuilder');
