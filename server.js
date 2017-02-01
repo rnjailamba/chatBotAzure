@@ -86,11 +86,64 @@ intents.matches('EnterBMI', [
     }
 ]);
 
-intents.matches('CurrentBMI', [
+ intents.matches('HistoryBMI', [
+    function (session, args, next) {
+        session.replaceDialog('/historyBMI');        
+    }
+]);
+
+ intents.matches('DeleteBMI', [
+    function (session, args, next) {
+        session.replaceDialog('/deleteBMI');        
+    }
+]);
+
+ intents.matches('CurrentBMI', [
     function (session, args, next) {
         session.replaceDialog('/currentBMI');        
     }
 ]);
+
+bot.dialog('/historyBMI', [
+    function (session, args, next) {
+        if(session.userData.arrayBMI){
+            var i = 0;
+            var arr = session.userData.arrayBMI;
+            // var data = {};
+            session.send('you have total %s readings sorted from earliest to newest.', session.userData.arrayBMI.length);
+            for (var data in arr) {
+                session.send('%s -> wt is %s and height is %s and bmi = %s.', i,arr[i]["wt"],arr[i]["ht"],arr[i]["wt"]/arr[i]["ht"]);
+                i++;
+            }          
+            session.endDialog();
+
+        }
+        else{
+            session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");               
+        }   
+    }
+]);
+
+bot.dialog('/deleteBMI', [
+    function (session, args, next) {
+        session.send('Delete command invoked');
+        if (session.userData.arrayBMI && session.userData.arrayBMI.length > 0) {
+            // Resolve entities passed from LUIS.
+            builder.Prompts.choice(session, "Choose an option:", 'Enter your BMI| \
+                    Tell me my current BMI reading | Delete a bmi reading | Show all bmi readings |Clear Data|Quit|Enter any custom question');
+         } else {
+            session.endDialog("No bmi readings to delete.");
+        }
+    },
+    function (session, results) {
+        session.userData.arrayBMI.splice(results.response.index, 1);
+        // delete session.userData.arrayBMI[results.response.index];
+        session.endDialog("Deleted the '%s' bmi reading.", results.response.entity);
+    }
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
+
 
 
 intents.matches(/^change name/i, [
@@ -102,14 +155,22 @@ intents.matches(/^change name/i, [
     }
 ]);
 
+intents.matches(/^clear/i, [
+    function (session) {
+        session.replaceDialog('/clearData');
+    }
+]);
+
+
+
 bot.dialog('/currentBMI', [
     function (session, args, next) {
         if(session.userData.height && session.userData.weight){
-            session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");
+            session.endDialog('Your current wt is %s and height is %s and bmi = %s.', session.userData.weight,session.userData.height,
+                session.userData.weight/session.userData.height);          
         }
         else{
-            session.endDialog('Your height is %s and wt is %s and bmi = %s.', session.userData.height,session.userData.weight,
-                session.userData.weight/session.userData.height);                 
+            session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");               
         }   
     }
 ]);
@@ -127,7 +188,7 @@ bot.dialog('/profile', [
 bot.dialog('/sample', [
     function (session) {
         builder.Prompts.choice(session, "Choose an option:", 'Enter your BMI| \
-                    Tell me my current BMI reading |Clear Data|Quit|Enter any custom question');
+                    Tell me my current BMI reading | Delete a bmi reading | Show all bmi readings |Clear Data|Quit|Enter any custom question');
     },
     function (session, results) {
         switch (results.response.index) {
@@ -136,14 +197,20 @@ bot.dialog('/sample', [
                 break;  
             case 1:
                  session.replaceDialog('/currentBMI');        
-                break;                            
+                break; 
             case 2:
+                 session.replaceDialog('/deleteBMI');        
+                break;  
+            case 3:
+                 session.replaceDialog('/historyBMI');        
+                break;                                                            
+            case 4:
                 session.replaceDialog('/clearData');
                 break;
-            case 3:
+            case 5:
                 session.replaceDialog('/quit');
                 break;
-            case 4:
+            case 6:
                 session.replaceDialog('/enterAnyCustom');
                 break;                
             default:
@@ -173,6 +240,7 @@ bot.dialog('/clearData', [
         session.userData.weight = undefined;
         session.userData.height = undefined;
         session.userData.name = undefined;
+        session.userData.arrayBMI = undefined;
         session.endDialog();
     }
    
@@ -248,7 +316,18 @@ bot.dialog('/enterBMI', [
     function (session, results,next) {
         var bmi = session.userData.weight/session.userData.height;
         session.send('Ok... your height is %s and wt is %s and bmi = %s.', session.userData.height,session.userData.weight,
-            session.userData.weight/session.userData.height);
+            bmi);
+        var data = {};
+        data["ht"] = session.userData.height;
+        data["wt"] = session.userData.weight;
+        data["bmi"] = bmi;
+        if(session.userData.arrayBMI){
+            session.userData.arrayBMI.push(data);
+        }
+        else{
+            session.userData.arrayBMI = [];
+            session.userData.arrayBMI.push(data);
+        }
         session.endDialog('I can further tell you if this is good/bad for you...'); 
         session.userData.context = 'BMIResults';
     }              
@@ -304,8 +383,7 @@ bot.dialog('/cards', [
                     ])
                     .buttons([
                         builder.CardAction.dialogAction(session, "weather", "No", "No, i want to change it."),
-                        builder.CardAction.dialogAction(session, "weather", "Yes", "Yes im fine with it.")
-                        
+                        builder.CardAction.dialogAction(session, "weather", "Yes", "Yes im fine with it.")  
                     ])
             ]);
         session.send(msg);
