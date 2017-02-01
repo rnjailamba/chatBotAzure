@@ -60,7 +60,6 @@ intents.matches('Greeting', [
         session.send('Hello %s!', session.userData.name);
         // session.endDialog();
         session.beginDialog('/sample');
-
     }
 ]);
 
@@ -122,7 +121,10 @@ bot.dialog('/historyBMI', [
             session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");               
         }   
     }
-]);
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
+});
+
 
 bot.dialog('/deleteBMI', [
     function (session, args, next) {
@@ -148,8 +150,8 @@ bot.dialog('/deleteBMI', [
         // delete session.userData.arrayBMI[results.response.index];
         session.endDialog("Deleted the '%s' bmi reading.", results.response.entity);
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 
@@ -169,8 +171,6 @@ intents.matches(/^clear/i, [
     }
 ]);
 
-
-
 bot.dialog('/currentBMI', [
     function (session, args, next) {
         if(session.userData.height && session.userData.weight){
@@ -181,8 +181,8 @@ bot.dialog('/currentBMI', [
             session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");               
         }   
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.dialog('/profile', [
@@ -193,8 +193,8 @@ bot.dialog('/profile', [
         session.userData.name = results.response;
         session.endDialog();
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.dialog('/sample', [
@@ -230,16 +230,16 @@ bot.dialog('/sample', [
                 break;
         }
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.dialog('/enterAnyCustom', [
     function (session, args) {
         session.endDialog('Go ahead...');
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.dialog('/quit', [
@@ -247,8 +247,8 @@ bot.dialog('/quit', [
         session.send('Quitting, see you next time, stay responsible and healthy till next time!');
         session.endDialog();
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 
@@ -261,7 +261,7 @@ bot.dialog('/clearData', [
         session.userData.arrayBMI = undefined;
         session.endDialog();
     }
-]).cancelAction('cancel', "Ok.", {
+]).cancelAction('cancel', "Ok cancelling..", {
     matches: /^(cancel|nevermind)/i
 });
 
@@ -389,8 +389,8 @@ intents.matches('InFeedback', [
         }        
        
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.dialog('/cards', [
@@ -410,8 +410,8 @@ bot.dialog('/cards', [
         session.send(msg);
         session.endDialog("");
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 intents.matches('Continue', [
@@ -443,8 +443,8 @@ bot.dialog('/weather', [
             session.endDialog("Ok we will change this(not implemented this), in the meantime you can play around with other functionality such as list/ delete the bmi entries");
         }
     }
-]).cancelAction('cancel', "Ok.", {
-    matches: /^(cancel|nevermind)/i
+]).cancelAction('cancel', "Ok cancelling..", {
+    matches: /^(cancel|nevermind|exit|no)/i
 });
 
 bot.beginDialogAction('weather', '/weather');   // <-- no 'matches' option means this can only be triggered by a button.
