@@ -10,7 +10,7 @@ var requestt = require('request');
 
 
 //MICROSOFT_APP_ID='66abcc6a-33e6-495c-819d-bd574b3604c5' MICROSOFT_APP_PASSWORD='fxJn2cjcNunesZmqDZxMhVT' node server.js
-
+//node --debug-brk=5314 server.js 
 //=========================================================
 // Bot Setup
 //=========================================================
@@ -66,7 +66,25 @@ intents.matches('Greeting', [
 
 intents.matches('EnterBMI', [
     function (session, args, next) {
-        session.beginDialog('/enterBMI');
+        var ht = builder.EntityRecognizer.findEntity(args.entities, 'height');
+        var wt = builder.EntityRecognizer.findEntity(args.entities, 'weight');
+        session.send("args is %s", args.entities);
+        if(ht){
+            session.userData.height = ht;
+            session.send("ht is %s", ht);        
+        }
+        if(wt){
+            session.userData.weight = wt;
+            session.send("wt is %s", wt);                    
+        }
+        session.replaceDialog('/enterBMI');
+
+    }
+]);
+
+intents.matches('CurrentBMI', [
+    function (session, args, next) {
+        session.replaceDialog('/currentBMI');        
     }
 ]);
 
@@ -77,6 +95,18 @@ intents.matches(/^change name/i, [
     },
     function (session, results) {
         session.send('Ok... Changed your name to %s', session.userData.name);
+    }
+]);
+
+bot.dialog('/currentBMI', [
+    function (session, args, next) {
+        if(session.userData.height && session.userData.weight){
+            session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");
+        }
+        else{
+            session.endDialog('Your height is %s and wt is %s and bmi = %s.', session.userData.height,session.userData.weight,
+                session.userData.weight/session.userData.height);                 
+        }   
     }
 ]);
 
@@ -92,21 +122,22 @@ bot.dialog('/profile', [
 
 bot.dialog('/sample', [
     function (session) {
-        builder.Prompts.choice(session, "Choose an option:", 'Give me expert advice based on my BMI|Clear Data|Quit|Enter any custom question');
+        builder.Prompts.choice(session, "Choose an option:", 'Enter your BMI| \
+                    Tell me my current BMI reading |Clear Data|Quit|Enter any custom question');
     },
     function (session, results) {
         switch (results.response.index) {
             case 0:
-                session.beginDialog('/enterBMI');
+                session.replaceDialog('/enterBMI');
                 break;            
             case 1:
-                session.beginDialog('/clearData');
+                session.replaceDialog('/clearData');
                 break;
             case 2:
-                session.beginDialog('/quit');
+                session.replaceDialog('/quit');
                 break;
             case 3:
-                session.beginDialog('/enterAnyCustom');
+                session.replaceDialog('/enterAnyCustom');
                 break;                
             default:
                 session.endDialog();
@@ -117,7 +148,7 @@ bot.dialog('/sample', [
 
 bot.dialog('/enterAnyCustom', [
     function (session, args) {
-        session.endDialog();
+        session.endDialog('Go ahead...');
     }
 ]);
 
@@ -194,9 +225,8 @@ bot.dialog('/enterBMI', [
         var bmi = session.userData.weight/session.userData.height;
         session.send('Ok... your height is %s and wt is %s and bmi = %s.', session.userData.height,session.userData.weight,
             session.userData.weight/session.userData.height);
-        session.send('I can further tell you if this is good/bad for you...'); 
+        session.endDialog('I can further tell you if this is good/bad for you...'); 
         session.userData.context = 'BMIResults';
-        session.endDialog();
     }              
         
 ]).cancelAction('cancel', "Ok cancelling taking your data.", {
@@ -205,46 +235,57 @@ bot.dialog('/enterBMI', [
 
 intents.matches('InFeedback', [
     function (session, args, next) {
-        if(session.userData.context == 'BMIResults'){
-            var bmi = session.userData.weight/session.userData.height;        
-            if(bmi < 5){//lower than optimal
-                session.send("It's lower than what it should be. %s, you need to put on some weight.",session.userData.name); 
-                session.userData.context = 'BMIResults_l';                           
-            }
-            else if(bmi >=5 && bmi < 10){//perfect
-                session.send("It's perfect 🙌. You know, I really admire people who keep in shape! 🚴"); 
-                session.userData.context = 'BMIResults_p';                                                              
-            }
-            else{//higher than optimal
-                session.send("It is on the higher side. But losing weight is easier than you think.");  
-                session.userData.context = 'BMIResults_h';                                                                                                
-            }
-            session.endDialog(); 
-        }
-        else if(session.userData.context == 'BMIResults_l' || session.userData.context == 'BMIResults_h'){
-            session.send("It's simple- set a long term goal, and break it down into short, achievable targets! \
-            I recommend a weight of 65kg in 3 months for you. This means your daily calorie intake should be 1200, while calories burned should be 300");
+        var topic = builder.EntityRecognizer.findEntity(args.entities, 'topic');
+        if(topic && topic.toLowerCase == 'count calories' || topic.toLowerCase == 'count cals'){
+            session.endDialog("By recording your food and activity in the Life in Control App! It will automatically calculate your calories for you."); 
         }
         else{
-            session.send("Dont have feedback, sorry!.");                    
-            session.endDialog();             
-        }
+            if(session.userData.context == 'BMIResults'){
+                var bmi = session.userData.weight/session.userData.height;        
+                if(bmi < 5){//lower than optimal
+                    session.userData.context = 'BMIResults_l';                                           
+                    session.endDialog("It's lower than what it should be. %s, you need to put on some weight.",session.userData.name); 
+                }
+                else if(bmi >=5 && bmi < 10){//perfect
+                    session.userData.context = 'BMIResults_p';                                                                              
+                    session.endDialog("It's perfect 🙌. You know, I really admire people who keep in shape! 🚴"); 
+                }
+                else{//higher than optimal
+                    session.userData.context = 'BMIResults_h';                                                                                                                
+                    session.endDialog("It is on the higher side. But losing weight is easier than you think.");  
+                }
+            }
+            else if(session.userData.context == 'BMIResults_l' || session.userData.context == 'BMIResults_h'){
+                session.send("It's simple- set a long term goal, and break it down into short, achievable targets! \
+                I recommend a weight of 65kg in 3 months for you. This means your daily calorie intake should be 1200, while calories burned should be 300");
+                session.userData.context == 'BMIResults_lh_done'
+            }
+            else{
+                session.send("Dont have feedback, sorry!.");                    
+                session.endDialog();             
+            }
+        }        
+       
     }
 ]);
 
 bot.dialog('/cards', [
-    function (session) {
+    function (session) { 
         var msg = new builder.Message(session)
-            .textFormat(builder.TextFormat.xml)
             .attachments([
                 new builder.HeroCard(session)
-                    .subtitle("Are you ok with this goal?")
+                    .title("Are you ok if i generate a plan based on the above goal?")
+                    .images([
+                        builder.CardImage.create(session, "https://smsmedia.files.wordpress.com/2015/03/plan-guy.jpg")
+                    ])
                     .buttons([
-                        builder.CardAction.dialogAction(session, "/weather", "Seattle, WA", "Yes"),
-                        builder.CardAction.dialogAction(session, "/weather", "Seattle, WA", "No")
-                    ])                    
+                        builder.CardAction.dialogAction(session, "weather", "No", "No, i want to change it."),
+                        builder.CardAction.dialogAction(session, "weather", "Yes", "Yes im fine with it.")
+                        
+                    ])
             ]);
-        session.endDialog(msg);
+        session.send(msg);
+        session.endDialog("");
     }
 ]);
 
@@ -254,9 +295,13 @@ intents.matches('Continue', [
             session.send("Let's keep you healthy. To maintain your current weight, your daily calorie goals should be 500 calories.!");    
             session.beginDialog('/cards');
             session.endDialog(); 
-        }                
+        }   
+        else if(session.userData.context == 'BMIResults_lh_done'){
+            session.endDialog('You should record your diet and activity in the app everyday. \
+            That keeps you to accountability to me, but most importantly, to yourself!');
+        }             
         else{
-            session.send("Dont have feedback, sorry!.");                    
+            session.send("Dont have anything, sorry!.");                    
             session.endDialog();             
         }
  
@@ -266,11 +311,19 @@ intents.matches('Continue', [
 // Create a dialog and bind it to a global action
 bot.dialog('/weather', [
     function (session, args) {
-        session.endDialog("The weather in %s is 71 degrees and raining.", args.data);
+        if(args.data == 'Yes'){
+            session.endDialog("Good to hear that, take user to goal screen and other flow(not implemented this)");
+        }
+        else{
+            session.endDialog("Sure please play around with other functionality such as list/ delete the bmi entries");
+        }
     }
 ]);
+bot.beginDialogAction('weather', '/weather');   // <-- no 'matches' option means this can only be triggered by a button.
 
 intents.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. Try saying 'hello' to me."));
+
+var bmiLog = {};
 
 // var restify = require('restify');
 // var builder = require('botbuilder');
