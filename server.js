@@ -129,8 +129,16 @@ bot.dialog('/deleteBMI', [
         session.send('Delete command invoked');
         if (session.userData.arrayBMI && session.userData.arrayBMI.length > 0) {
             // Resolve entities passed from LUIS.
-            builder.Prompts.choice(session, "Choose an option:", 'Enter your BMI| \
-                    Tell me my current BMI reading | Delete a bmi reading | Show all bmi readings |Clear Data|Quit|Enter any custom question');
+            var arr = session.userData.arrayBMI;
+            var stringConcat = '';
+            var i = 0;
+            for (var data in arr) {
+                stringConcat+=  'wt is ' + arr[i]["wt"] + ' and height is ' + arr[i]["ht"] + ' bmi is ' + (arr[i]["wt"]/arr[i]["ht"] + ' | ');
+                // session.send('%s -> wt is %s and height is %s and bmi = %s.', i,arr[i]["wt"],arr[i]["ht"],arr[i]["wt"]/arr[i]["ht"]);
+                i++;
+            }     
+            stringConcat = stringConcat.substring(0, stringConcat.length - 2);  
+            builder.Prompts.choice(session, "Choose an bmi reading to delete : ", stringConcat);
          } else {
             session.endDialog("No bmi readings to delete.");
         }
@@ -173,7 +181,9 @@ bot.dialog('/currentBMI', [
             session.endDialog("You have not logged anything as yet, try saying - 'enter my bmi reading, my weight is 75 and height is 180'");               
         }   
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/profile', [
     function (session) {
@@ -183,7 +193,9 @@ bot.dialog('/profile', [
         session.userData.name = results.response;
         session.endDialog();
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/sample', [
     function (session) {
@@ -218,20 +230,26 @@ bot.dialog('/sample', [
                 break;
         }
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/enterAnyCustom', [
     function (session, args) {
         session.endDialog('Go ahead...');
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/quit', [
     function (session, args) {
         session.send('Quitting, see you next time, stay responsible and healthy till next time!');
         session.endDialog();
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 
 bot.dialog('/clearData', [
@@ -243,8 +261,9 @@ bot.dialog('/clearData', [
         session.userData.arrayBMI = undefined;
         session.endDialog();
     }
-   
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/enterBMI', [
     function (session, args,next) {
@@ -370,7 +389,9 @@ intents.matches('InFeedback', [
         }        
        
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 bot.dialog('/cards', [
     function (session) { 
@@ -389,7 +410,9 @@ bot.dialog('/cards', [
         session.send(msg);
         session.endDialog("");
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
 
 intents.matches('Continue', [
     function (session, args, next) {
@@ -420,7 +443,10 @@ bot.dialog('/weather', [
             session.endDialog("Ok we will change this(not implemented this), in the meantime you can play around with other functionality such as list/ delete the bmi entries");
         }
     }
-]);
+]).cancelAction('cancel', "Ok.", {
+    matches: /^(cancel|nevermind)/i
+});
+
 bot.beginDialogAction('weather', '/weather');   // <-- no 'matches' option means this can only be triggered by a button.
 
 intents.onDefault(builder.DialogAction.send("I'm sorry I didn't understand. Try saying 'hello' to me."));
