@@ -68,16 +68,20 @@ intents.matches('EnterBMI', [
     function (session, args, next) {
         var ht = builder.EntityRecognizer.findEntity(args.entities, 'height');
         var wt = builder.EntityRecognizer.findEntity(args.entities, 'weight');
-        session.send("args is %s", args.entities);
+        var data = {};
+        data["ht"] = undefined;
+        data["wt"] = undefined;
         if(ht){
-            session.userData.height = ht;
-            session.send("ht is %s", ht);        
+            session.userData.height = ht.entity;
+            data["ht"] = ht.entity;
+            // session.send("ht is %s", ht.entity);        
         }
         if(wt){
-            session.userData.weight = wt;
-            session.send("wt is %s", wt);                    
+            session.userData.weight = wt.entity;
+            data["wt"] = wt.entity;
+            // session.send("wt is %s", wt.entity);                    
         }
-        session.replaceDialog('/enterBMI');
+        session.replaceDialog('/enterBMI',data);
 
     }
 ]);
@@ -129,14 +133,17 @@ bot.dialog('/sample', [
         switch (results.response.index) {
             case 0:
                 session.replaceDialog('/enterBMI');
-                break;            
+                break;  
             case 1:
+                 session.replaceDialog('/currentBMI');        
+                break;                            
+            case 2:
                 session.replaceDialog('/clearData');
                 break;
-            case 2:
+            case 3:
                 session.replaceDialog('/quit');
                 break;
-            case 3:
+            case 4:
                 session.replaceDialog('/enterAnyCustom');
                 break;                
             default:
@@ -173,6 +180,13 @@ bot.dialog('/clearData', [
 
 bot.dialog('/enterBMI', [
     function (session, args,next) {
+        session.userData.weight = undefined;
+        session.userData.height = undefined;
+        if(args){
+            session.userData.weight = args["wt"];
+            session.userData.height = args["ht"];
+        }
+
         if(!session.userData.weight){
             builder.Prompts.text(session, 'What is your weight in kgs?');
         }
@@ -181,29 +195,39 @@ bot.dialog('/enterBMI', [
         }
         // builder.Prompts.choice(session, "Choose heads or tails.", "heads|tails", { listStyle: builder.ListStyle.none })
     },
-    function (session, results,next) {
+    function (session, results,next,args) {
         if(session.userData.weight){
+            session.send('Ok... your weight is %s kgs', session.userData.weight);
             if(session.userData.height){
                 next();
             }
             else{
                 builder.Prompts.text(session, 'What is your hieght in cm?');            
-            }
+            }  
+        }
+        else if(isNaN(results.response)){
+            session.send('Please enter a number');
+            session.replaceDialog('/enterBMI');
         }
         else{
-            if(isNaN(results.response)){
-                session.send('Please enter a number');
-                session.replaceDialog('/enterBMI');
+            session.userData.weight = results.response;
+            session.send('Ok... your weight is %s kgs', session.userData.weight);
+            if(session.userData.height){
+                next();
             }
             else{
-                session.userData.weight = results.response;
-                session.send('Ok... your weight is %s kgs', session.userData.weight);
                 builder.Prompts.text(session, 'What is your hieght in cm?');            
-            }
-        }
+            }            
+        }        
+
     },
     function (session, results,next) {
         if(session.userData.weight && session.userData.height){
+            session.userData.height = session.userData.height * 0.0328084;
+            if(session.userData.height > 6){
+                session.send('Oh my youre a tall one');                    
+            }
+            session.send('Ok... your height is %s feet', session.userData.height);
             next();
         }      
         else{
@@ -236,7 +260,7 @@ bot.dialog('/enterBMI', [
 intents.matches('InFeedback', [
     function (session, args, next) {
         var topic = builder.EntityRecognizer.findEntity(args.entities, 'topic');
-        if(topic && topic.toLowerCase == 'count calories' || topic.toLowerCase == 'count cals'){
+        if(topic && (topic == 'count calories' || topic == 'count cals')){
             session.endDialog("By recording your food and activity in the Life in Control App! It will automatically calculate your calories for you."); 
         }
         else{
@@ -315,7 +339,7 @@ bot.dialog('/weather', [
             session.endDialog("Good to hear that, take user to goal screen and other flow(not implemented this)");
         }
         else{
-            session.endDialog("Sure please play around with other functionality such as list/ delete the bmi entries");
+            session.endDialog("Ok we will change this(not implemented this), in the meantime you can play around with other functionality such as list/ delete the bmi entries");
         }
     }
 ]);
