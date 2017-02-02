@@ -39,6 +39,18 @@ server.post('/api/messages', connector.listen());
 var model = 'https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/45920bdd-a3db-4d6e-b05e-ebfbf5a8e262?subscription-key=5871c7a8471840cd9122d563643af60b&verbose=true&q=';
 var recognizer = new builder.LuisRecognizer(model);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] });
+
+//=========================================================
+// Bots Global Actions
+//=========================================================
+
+bot.endConversationAction('goodbye', 'Goodbye :)', { matches: /^goodbye/i });
+// bot.beginDialogAction('help', '/help', { matches: /^help/i });
+
+
+//=========================================================
+// Bots Dialogs
+//=========================================================
 bot.dialog('/', intents);
 
 // Add intent handlers
@@ -59,6 +71,7 @@ intents.matches('Greeting', [
         }
         session.send('Hello %s!', session.userData.name);
         // session.endDialog();
+        session.beginDialog('/help');        
         session.beginDialog('/sample');
     }
 ]);
@@ -100,6 +113,24 @@ intents.matches('EnterBMI', [
  intents.matches('CurrentBMI', [
     function (session, args, next) {
         session.replaceDialog('/currentBMI');        
+    }
+]);
+
+bot.dialog('/help', [
+    function (session) {
+        session.endDialog("Global commands that are available anytime:\n\n* menu - Shows a menu.\n* goodbye - End this conversation.\n* help - Displays these commands.");
+    }
+]);
+
+intents.matches(/^help/i, [
+    function (session) {
+        session.replaceDialog('/help');
+    }
+]);
+
+intents.matches(/^menu/i, [
+    function (session) {
+        session.replaceDialog('/sample');
     }
 ]);
 
@@ -165,12 +196,6 @@ intents.matches(/^change name/i, [
     }
 ]);
 
-intents.matches(/^clear/i, [
-    function (session) {
-        session.replaceDialog('/clearData');
-    }
-]);
-
 bot.dialog('/currentBMI', [
     function (session, args, next) {
         if(session.userData.height && session.userData.weight){
@@ -200,7 +225,7 @@ bot.dialog('/profile', [
 bot.dialog('/sample', [
     function (session) {
         builder.Prompts.choice(session, "Choose an option:", 'Enter your BMI| \
-                    Tell me my current BMI reading | Delete a bmi reading | Show all bmi readings |Clear Data|Quit|Enter any custom question');
+                    Tell me my current BMI reading | Delete a bmi reading | Show all bmi readings |Clear Data|Enter any custom question|Quit from this loop');
     },
     function (session, results) {
         switch (results.response.index) {
@@ -220,12 +245,13 @@ bot.dialog('/sample', [
                 session.replaceDialog('/clearData');
                 break;
             case 5:
-                session.replaceDialog('/quit');
-                break;
-            case 6:
                 session.replaceDialog('/enterAnyCustom');
-                break;                
+                break;          
+            case 6:
+                session.replaceDialog('/quit');
+                break;                      
             default:
+                session.send('no handling of this option');
                 session.endDialog();
                 break;
         }
@@ -429,7 +455,13 @@ intents.matches('Continue', [
             session.send("Dont have anything, sorry!.");                    
             session.endDialog();             
         }
- 
+    }
+]);
+
+intents.matches('Cancel', [
+    function (session, args, next) {
+           session.send("Ok cancelling.");                    
+            session.endDialog(); 
     }
 ]);
 
