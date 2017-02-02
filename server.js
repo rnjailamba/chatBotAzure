@@ -59,7 +59,19 @@ intents.matches('Greeting', [
     function (session, args, next) {
         // session.userData.name = undefined;
         if (!session.userData.name) {
-            session.send("Welcome to Life in Control!\n*Thank you for trusting us with your health. As your care team, we shall do everything we can( to keep you fit and healthy!)/(for your health and well-being!)But always remember, the most important member in your care team is you!Now, it's time for you to meet Maya, your personal health assistant!");
+            var card = new builder.HeroCard(session)
+                .title("Life In Control")
+                .text("Your Personalised Diabetes Care Platform")
+                .images([
+                    builder.CardImage.create(session, "http://docs.botframework.com/images/demo_bot_image.png")
+                ])
+                .buttons([
+                    builder.CardAction.openUrl(session, "http://www.lifeincontrol.com/", "Our Website")
+                ]);
+            var msg = new builder.Message(session).attachments([card]);
+            session.send(msg);
+
+            session.send("Welcome to Life in Control!\n\nThank you for trusting us with your health. \n\nAs your care team, we shall do everything we can( to keep you fit and healthy!)/(for your health and well-being!)\n\nBut always remember, the most important member in your care team is you!\n\nNow, it's time for you to meet Maya, your personal health assistant!");
             builder.Prompts.text(session, "What is your name?");
         } else {
             next();
@@ -118,7 +130,7 @@ intents.matches('EnterBMI', [
 
 bot.dialog('/help', [
     function (session) {
-        session.endDialog("Global commands that are available anytime:\n\n* menu - Shows a menu.\n* goodbye - End this conversation.\n* help - Displays these commands.");
+        session.endDialog("Global commands that are available anytime:\n\n* menu - Shows a menu.\n* goodbye - End this conversation.\n* help - Displays these commands.\n* clear - Clear all data.\n* Also just say 'cancel/exit/no' in between a conversation to get out of it.");
     }
 ]);
 
@@ -185,7 +197,11 @@ bot.dialog('/deleteBMI', [
     matches: /^(cancel|nevermind|exit|no)/i
 });
 
-
+intents.matches(/^clear/i, [
+    function (session) {
+        session.replaceDialog('/clearData');
+    }
+]);
 
 intents.matches(/^change name/i, [
     function (session) {
